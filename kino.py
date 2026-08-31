@@ -14,9 +14,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     KeyboardButton,
     ReplyKeyboardMarkup,
-    ReplyKeyboardRemove,
 )
-
 
 # ==========================================
 # 0. ВЕБ-СЕРВЕР ДЛЯ ПРОХОЖДЕНИЯ ПОРТА НА RENDER
@@ -27,13 +25,12 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"Bot is live and running!")
 
-
 def run_health_check_server():
-    port = int(os.environ.get("PORT", 8080))
+    port = int(os.environ.get("PORT", 10000))
     server = HTTPServer(('0.0.0.0', port), SimpleHTTPRequestHandler)
     server.serve_forever()
 
-
+# Запускаем фоновый веб-сервер для обмана Web Service на Render
 threading.Thread(target=run_health_check_server, daemon=True).start()
 
 # ==========================================
@@ -41,9 +38,9 @@ threading.Thread(target=run_health_check_server, daemon=True).start()
 # ==========================================
 logging.basicConfig(level=logging.INFO)
 
-# Укажите ваш токен и ID администратора
+# Токен и ID админа из переменных окружения (или значения по умолчанию)
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "8995206672:AAFKlE6d86dZ1BaiZv1T4qJpbGoMXs9JTBE")
-ADMIN_CHAT_ID = int(os.environ.get("ADMIN_CHAT_ID", 6698944628))  # Укажите ваш Telegram ID
+ADMIN_CHAT_ID = int(os.environ.get("ADMIN_CHAT_ID", 6698944628))
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
@@ -51,10 +48,8 @@ dp = Dispatcher(storage=MemoryStorage())
 # Хранилище выбора пользователей
 user_data = {}
 
-
 class BookingState(StatesGroup):
     waiting_for_receipt = State()
-
 
 # ==========================================
 # 2. ДАННЫЕ О ФИЛЬМАХ И ЯЗЫКАХ
@@ -105,7 +100,6 @@ TEXTS = {
     }
 }
 
-
 # ==========================================
 # 3. ВСПОМОГАТЕЛЬНЫЕ КЛАВИАТУРЫ
 # ==========================================
@@ -114,7 +108,6 @@ def get_lang_keyboard():
         [InlineKeyboardButton(text="🇷🇺 Русский", callback_data="lang_ru"),
          InlineKeyboardButton(text="🇺🇿 O'zbekcha", callback_data="lang_uz")]
     ])
-
 
 def get_main_keyboard(lang):
     t = TEXTS[lang]
@@ -126,15 +119,12 @@ def get_main_keyboard(lang):
         resize_keyboard=True
     )
 
-
 def get_catalog_keyboard(lang):
-    t = TEXTS[lang]
     buttons = []
     for m in MOVIES:
         title = m["title_ru"] if lang == "ru" else m["title_uz"]
         buttons.append([InlineKeyboardButton(text=title, callback_data=f"movie_{m['id']}")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
-
 
 def get_movie_detail_keyboard(lang, movie_id):
     t = TEXTS[lang]
@@ -143,7 +133,6 @@ def get_movie_detail_keyboard(lang, movie_id):
         [InlineKeyboardButton(text=t["btn_back"], callback_data="back_catalog")]
     ])
 
-
 # ==========================================
 # 4. ОБРАБОТЧИКИ КОМАНД И НАЖАТИЙ
 # ==========================================
@@ -151,31 +140,29 @@ def get_movie_detail_keyboard(lang, movie_id):
 async def cmd_start(message: types.Message):
     await message.answer(TEXTS["ru"]["welcome"], reply_markup=get_lang_keyboard(), parse_mode="Markdown")
 
-
 @dp.callback_query(F.data.startswith("lang_"))
 async def set_language(call: types.CallbackQuery):
     lang = call.data.split("_")[1]
     user_data[call.from_user.id] = {"lang": lang}
-    await call.message.delete()
+    try:
+        await call.message.delete()
+    except Exception:
+        pass
     await call.message.answer(TEXTS[lang]["main_menu"], reply_markup=get_main_keyboard(lang), parse_mode="Markdown")
-
 
 @dp.message(F.text.in_([TEXTS["ru"]["btn_lang"], TEXTS["uz"]["btn_lang"]]))
 async def change_lang(message: types.Message):
     await message.answer(TEXTS["ru"]["welcome"], reply_markup=get_lang_keyboard(), parse_mode="Markdown")
-
 
 @dp.message(F.text.in_([TEXTS["ru"]["btn_contact"], TEXTS["uz"]["btn_contact"]]))
 async def show_contacts(message: types.Message):
     lang = user_data.get(message.from_user.id, {}).get("lang", "ru")
     await message.answer(TEXTS[lang]["contacts"], parse_mode="Markdown")
 
-
 @dp.message(F.text.in_([TEXTS["ru"]["btn_catalog"], TEXTS["uz"]["btn_catalog"]]))
 async def show_catalog_msg(message: types.Message):
     lang = user_data.get(message.from_user.id, {}).get("lang", "ru")
     await message.answer(TEXTS[lang]["select_movie"], reply_markup=get_catalog_keyboard(lang), parse_mode="Markdown")
-
 
 @dp.callback_query(F.data == "back_catalog")
 async def back_to_catalog(call: types.CallbackQuery):
@@ -184,9 +171,7 @@ async def back_to_catalog(call: types.CallbackQuery):
         await call.message.delete()
     except Exception:
         pass
-    await call.message.answer(TEXTS[lang]["select_movie"], reply_markup=get_catalog_keyboard(lang),
-                              parse_mode="Markdown")
-
+    await call.message.answer(TEXTS[lang]["select_movie"], reply_markup=get_catalog_keyboard(lang), parse_mode="Markdown")
 
 @dp.callback_query(F.data.startswith("movie_"))
 async def show_movie_details(call: types.CallbackQuery):
@@ -197,7 +182,6 @@ async def show_movie_details(call: types.CallbackQuery):
     if movie:
         title = movie["title_ru"] if lang == "ru" else movie["title_uz"]
         caption = TEXTS[lang]["movie_info"].format(title=title, time=movie["time"], price=movie["price"])
-
         try:
             await call.message.delete()
         except Exception:
@@ -210,7 +194,6 @@ async def show_movie_details(call: types.CallbackQuery):
             parse_mode="Markdown"
         )
 
-
 @dp.callback_query(F.data.startswith("buy_"))
 async def buy_ticket(call: types.CallbackQuery, state: FSMContext):
     lang = user_data.get(call.from_user.id, {}).get("lang", "ru")
@@ -220,7 +203,6 @@ async def buy_ticket(call: types.CallbackQuery, state: FSMContext):
     if movie:
         await state.update_data(movie_id=movie_id)
         await state.set_state(BookingState.waiting_for_receipt)
-
         msg_text = TEXTS[lang]["send_receipt"].format(price=movie["price"])
         try:
             await call.message.delete()
@@ -228,7 +210,6 @@ async def buy_ticket(call: types.CallbackQuery, state: FSMContext):
             pass
 
         await call.message.answer(msg_text, parse_mode="Markdown")
-
 
 @dp.message(BookingState.waiting_for_receipt, F.photo | F.document)
 async def process_receipt(message: types.Message, state: FSMContext):
@@ -239,10 +220,8 @@ async def process_receipt(message: types.Message, state: FSMContext):
     title = movie["title_ru"] if movie else "Кино"
     price = movie["price"] if movie else 0
 
-    # Ответ пользователю
     await message.answer(TEXTS[lang]["receipt_received"], reply_markup=get_main_keyboard(lang), parse_mode="Markdown")
 
-    # Уведомление администратору
     admin_msg = TEXTS["ru"]["admin_notify"].format(
         username=message.from_user.username or "без_юзернейма",
         user_id=message.from_user.id,
@@ -252,24 +231,20 @@ async def process_receipt(message: types.Message, state: FSMContext):
 
     try:
         if message.photo:
-            await bot.send_photo(chat_id=ADMIN_CHAT_ID, photo=message.photo[-1].file_id, caption=admin_msg,
-                                 parse_mode="Markdown")
+            await bot.send_photo(chat_id=ADMIN_CHAT_ID, photo=message.photo[-1].file_id, caption=admin_msg, parse_mode="Markdown")
         elif message.document:
-            await bot.send_document(chat_id=ADMIN_CHAT_ID, document=message.document.file_id, caption=admin_msg,
-                                    parse_mode="Markdown")
+            await bot.send_document(chat_id=ADMIN_CHAT_ID, document=message.document.file_id, caption=admin_msg, parse_mode="Markdown")
     except Exception as e:
         logging.error(f"Не удалось отправить чек администратору: {e}")
 
     await state.clear()
 
-
 # ==========================================
-# 5. ЗАПУСК БОТА
+# 5. ОСНОВНОЙ ЗАПУСК
 # ==========================================
 async def main():
     print(f"Бот ТЦ «Фестиваль» успешно запущен. ID админа: {ADMIN_CHAT_ID}")
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
