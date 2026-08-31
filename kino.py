@@ -39,14 +39,14 @@ logging.basicConfig(level=logging.INFO)
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "8995206672:AAFKlE6d86dZ1BaiZv1T4qJpbGoMXs9JTBE")
 
-# Номера телефонов (можете легко изменить здесь)
-PHONE_BOOKING = "+998 93 484 51 41"  # Номер главного для бронирования
+# Номера телефонов (укажи нужные)
+PHONE_BOOKING = "+998 93 484 51 41"  # Номер для бронирования
 PHONE_SUPPORT = "+998 99 272 29 10"  # Номер техподдержки
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# Хранилище выбраного языка пользователей
+# Хранилище выбранного языка пользователей
 user_data = {}
 
 # ==========================================
@@ -157,7 +157,7 @@ TEXTS = {
             "📞 **БРОНИРОВАНИЕ МЕСТ**\n\n"
             "🎬 **Выбранный фильм:** {title}\n"
             "💰 **Цена билета:** {price:,} сум\n\n"
-            "Для забронирования мест звоните главному менеджеру кинотеатра:\n"
+            "Для бронирования мест звоните главному менеджеру кинотеатра:\n"
             "👉 **`{phone}`**\n\n"
             "*(Позвоните по номеру выше, назовите фильм и забронируйте нужное количество мест!)*"
         )
@@ -294,17 +294,27 @@ async def show_movie_details(call: types.CallbackQuery):
             time=movie["time"],
             price=movie["price"]
         )
+
         try:
             await call.message.delete()
         except Exception:
             pass
 
-        await call.message.answer_photo(
-            photo=movie["poster"],
-            caption=caption,
-            reply_markup=get_movie_detail_keyboard(lang, movie_id),
-            parse_mode="Markdown"
-        )
+        # Безопасный вызов: если фото не сгрузится с интернета, выведет просто текст
+        try:
+            await call.message.answer_photo(
+                photo=movie["poster"],
+                caption=caption,
+                reply_markup=get_movie_detail_keyboard(lang, movie_id),
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            logging.error(f"Ошибка фото: {e}")
+            await call.message.answer(
+                text=caption,
+                reply_markup=get_movie_detail_keyboard(lang, movie_id),
+                parse_mode="Markdown"
+            )
 
 
 @dp.callback_query(F.data.startswith("reserve_"))
