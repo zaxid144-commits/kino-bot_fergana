@@ -15,13 +15,13 @@ from aiogram.types import (
 
 
 # ==========================================
-# 0. ВЕБ-СЕРВЕР ДЛЯ ПРОХОЖДЕНИЯ ПОРТА НА RENDER
+# 0. ВЕБ-СЕРВЕР ДЛЯ СТАБИЛЬНОЙ РАБОТЫ НА RENDER
 # ==========================================
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(b"Bot is live and running!")
+        self.wfile.write(b"Kino Bot is running perfectly!")
 
 
 def run_health_check_server():
@@ -33,137 +33,171 @@ def run_health_check_server():
 threading.Thread(target=run_health_check_server, daemon=True).start()
 
 # ==========================================
-# 1. НАСТРОЙКИ И ИНИЦИАЛИЗАЦИЯ
+# 1. НАСТРОЙКИ И ПЕРЕМЕННЫЕ
 # ==========================================
 logging.basicConfig(level=logging.INFO)
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "8995206672:AAFKlE6d86dZ1BaiZv1T4qJpbGoMXs9JTBE")
-ADMIN_PHONE = "+998 99 272 29 10"  # Номер для бронирования
+
+# Номера телефонов (можете легко изменить здесь)
+PHONE_BOOKING = "+998 93 484 51 41"  # Номер главного для бронирования
+PHONE_SUPPORT = "+998 99 272 29 10"  # Номер техподдержки
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# Хранилище выбора языка пользователей
+# Хранилище выбраного языка пользователей
 user_data = {}
 
 # ==========================================
-# 2. РАСШИРЕННЫЙ КАТАЛОГ ФИЛЬМОВ
+# 2. КАТАЛОГ ФИЛЬМОВ И АФИША (ЦЕНЫ 5 000 - 50 000 СУМ)
 # ==========================================
 MOVIES = [
     {
         "id": 1,
-        "title_ru": "Дюна: Часть вторая (2024)",
-        "title_uz": "Duna: Ikkinchi qism (2024)",
-        "price": 45000,
-        "time": "15:00, 18:30, 21:00",
-        "poster": "https://m.media-amazon.com/images/M/MVBmMjA2MTIyONAtYTIzOC00YzI4LWIxNDYtMWJmY2I3LWM2YThlXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg"
-    },
-    {
-        "id": 2,
-        "title_ru": "Кунг-фу Панда 4 (2024)",
-        "title_uz": "Kung Fu Panda 4 (2024)",
-        "price": 35000,
-        "time": "12:00, 14:00, 16:00",
-        "poster": "https://m.media-amazon.com/images/M/MVBmYTA3N2IxOTMtYThhOC00Y2E4LWIxNjItZTU3NDI2NDI4OTk3XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg"
-    },
-    {
-        "id": 3,
-        "title_ru": "Годзилла и Конг: Новая империя (2024)",
-        "title_uz": "Godzilla va Kong: Yangi imperiya (2024)",
-        "price": 40000,
-        "time": "17:00, 20:00",
-        "poster": "https://m.media-amazon.com/images/M/MVBmNzI2OTM2M2UtYWFiOC00NWZhLTg3MDAtMDU0YmIxOGU3OTNmXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg"
-    },
-    {
-        "id": 4,
-        "title_ru": "Стражи Галактики. Часть 3 (2023)",
-        "title_uz": "Galaktika qo'riqchilari 3 (2023)",
-        "price": 40000,
-        "time": "16:30, 19:30",
-        "poster": "https://m.media-amazon.com/images/M/MVBmMjM2ZTBjNjItYjA0OC00ZWEzLThmMDUtYzg3NWNmNWY0M2E3XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg"
-    },
-    {
-        "id": 5,
-        "title_ru": "Оппенгеймер (2023)",
-        "title_uz": "Oppenxaymer (2023)",
-        "price": 45000,
-        "time": "18:00, 21:30",
-        "poster": "https://m.media-amazon.com/images/M/MVBmN2I0NjAxZGYtMGMyOC00YzkwLWI4OWItNmU2M2RhOTlkOThkXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg"
-    },
-    {
-        "id": 6,
-        "title_ru": "Аватар: Путь воды (2022)",
-        "title_uz": "Avatar: Suv yo'li (2022)",
-        "price": 45000,
-        "time": "14:30, 18:00",
-        "poster": "https://m.media-amazon.com/images/M/MVBmYjA0YzA0YWUtZDkzOS00MWEzLWIxYjYtYmI3YWU3OGI3NzhkXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg"
-    },
-    {
-        "id": 7,
-        "title_ru": "Человек-паук: Нет пути домой (2021)",
-        "title_uz": "O'rgimchak-odam: Uyga yo'l yo'q (2021)",
-        "price": 35000,
-        "time": "13:00, 17:30",
+        "title_ru": "Человек-паук: Новый день",
+        "title_uz": "O'rgimchak-odam: Yangi kun",
+        "price": 50000,
+        "time": "15:00, 18:00, 21:00",
         "poster": "https://m.media-amazon.com/images/M/MVBmM2MyOGI4YjktYjNhZC00NDA4LWI3ZmMtNWYwYWY1OWRkYmUyXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg"
     },
     {
-        "id": 8,
+        "id": 2,
+        "title_ru": "Веном: Последний танец (2024)",
+        "title_uz": "Venom: Oxirgi raqs (2024)",
+        "price": 45000,
+        "time": "16:30, 19:30, 22:00",
+        "poster": "https://m.media-amazon.com/images/M/MVBmM2E5ZmYyMzItPCI0ZS00OGMwLTg4MTctN2E3OTM0ZDA3ZTZhXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg"
+    },
+    {
+        "id": 3,
+        "title_ru": "Человек-паук: Нет пути домой (2021)",
+        "title_uz": "O'rgimchak-odam: Uyga yo'l yo'q (2021)",
+        "price": 35000,
+        "time": "14:00, 17:30",
+        "poster": "https://m.media-amazon.com/images/M/MVBmM2MyOGI4YjktYjNhZC00NDA4LWI3ZmMtNWYwYWY1OWRkYmUyXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg"
+    },
+    {
+        "id": 4,
         "title_ru": "Бэтмен (2022)",
         "title_uz": "Betmen (2022)",
-        "price": 40000,
-        "time": "19:00, 22:00",
+        "price": 30000,
+        "time": "18:00, 21:00",
         "poster": "https://m.media-amazon.com/images/M/MVBmM2JkOTlhNDktYjE3YS00NzA3LWIzM2EtN2Y4YmJkNmRjNWRkXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg"
     },
     {
-        "id": 9,
-        "title_ru": "Кот в сапогах 2: Последнее желание (2022)",
-        "title_uz": "Etik kiygan mushuk 2 (2022)",
-        "price": 35000,
-        "time": "11:00, 13:30, 15:30",
-        "poster": "https://m.media-amazon.com/images/M/MVBmNmI3N2VjN2UtN2U3ZS00Y2UzLTkyNmEtYWRiYjgzYzg4MTlhXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg"
+        "id": 5,
+        "title_ru": "Джентльмены (2020)",
+        "title_uz": "Jentlmenlar (2020)",
+        "price": 25000,
+        "time": "19:00, 21:30",
+        "poster": "https://m.media-amazon.com/images/M/MVBmNzE5OTE5NmUtMTM3MS00MDlhLWE4NDctYTY1MzE1ZmJhZTBmXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg"
     },
     {
-        "id": 10,
+        "id": 6,
+        "title_ru": "Довод (2020)",
+        "title_uz": "Tenet (2020)",
+        "price": 20000,
+        "time": "20:00",
+        "poster": "https://m.media-amazon.com/images/M/MVBYzVkMTNhYjEtNmI3NC00YTI0LWI4NzYtMjA1YmJlZWJmNWZhXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg"
+    },
+    {
+        "id": 7,
+        "title_ru": "Мстители: Финал (2019)",
+        "title_uz": "Qasoskorlar: Final (2019)",
+        "price": 15000,
+        "time": "16:00, 19:30",
+        "poster": "https://m.media-amazon.com/images/M/MVBmMTZiNmMxMmEtYWQ3ZC00MWVlLTg5ODAtOTNmZTBjNzA0N2M1XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg"
+    },
+    {
+        "id": 8,
         "title_ru": "Интерстеллар (Классика)",
         "title_uz": "Interstellar (Klassika)",
-        "price": 40000,
-        "time": "20:30",
+        "price": 10000,
+        "time": "21:00",
         "poster": "https://m.media-amazon.com/images/M/MVBmNzA3OWI2ODktZmE2YS00MDk0LWI4ZjItYzA1YjhkYzhkMDY4XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg"
+    },
+    {
+        "id": 9,
+        "title_ru": "Ретро Утро: Мультфильмы",
+        "title_uz": "Retro Multfilmlar",
+        "price": 5000,
+        "time": "11:00, 13:00",
+        "poster": "https://picsum.photos/400/600?random=9"
     }
 ]
 
+# ==========================================
+# 3. ТЕКСТЫ НА 2 ЯЗЫКАХ
+# ==========================================
 TEXTS = {
     "ru": {
-        "welcome": "👋 **Добро пожаловать в кинотеатр «Фестиваль»!**\n\nПожалуйста, выберите язык обслуживания:",
-        "main_menu": "🎬 **Главное меню**\nВыберите нужный раздел:",
-        "btn_catalog": "🍿 Афиша фильмов",
-        "btn_contact": "📞 Контакты и адрес",
+        "welcome": "👋 **Добро пожаловать в кинотеатр «Фестиваль»!**\n\nПожалуйста, выберите язык:",
+        "main_menu": "🎬 **Главное меню**\nВыберите нужный раздел ниже:",
+        "btn_catalog": "🍿 Афиша и выбор сеансов",
+        "btn_contact": "📍 Контакты и адрес",
         "btn_lang": "🌐 Сменить язык",
-        "contacts": f"📍 **Кинотеатр «Фестиваль»**\n📞 Бронирование и справки: {ADMIN_PHONE}\n🏢 Адрес: ТЦ «Фестиваль»\n💵 Оплата принимается **только наличными** в кассе кинотеатра.",
+        "contacts": (
+            f"📍 **Кинотеатр «Фестиваль»**\n"
+            f"🏢 **Адрес:** г. Фергана, Центр, ТЦ «Фестиваль»\n\n"
+            f"📞 **Бронирование билетов:** `{PHONE_BOOKING}`\n"
+            f"🛠 **Техподдержка:** `{PHONE_SUPPORT}`\n\n"
+            f"💵 *Оплата производится наличными в кассе.*"
+        ),
         "select_movie": "🎟 **Выберите фильм из афиши:**",
-        "movie_info": "🎬 **{title}**\n\n⏰ Сеансы: {time}\n💰 Цена билета: {price} сум\n💵 Оплата: Наличными в кассе",
+        "movie_info": (
+            "🎬 **Фильм:** {title}\n\n"
+            "⏰ **Доступные сеансы:** {time}\n"
+            "💰 **Цена билета:** {price:,} сум\n"
+            "💵 **Оплата:** Наличными в кассе"
+        ),
         "btn_reserve": "📞 Забронировать место",
         "btn_back": "⬅️ Назад к афише",
-        "reserve_info": f"📞 **Бронирование билетов**\n\nДля бронирования мест на фильм **«{{title}}»** позвоните по номеру:\n👉 `{ADMIN_PHONE}`\n\n*(Назовите кассиру фильм, время сеанса и количество мест)*"
+        "reserve_info": (
+            "📞 **БРОНИРОВАНИЕ МЕСТ**\n\n"
+            "🎬 **Выбранный фильм:** {title}\n"
+            "💰 **Цена билета:** {price:,} сум\n\n"
+            "Для забронирования мест звоните главному менеджеру кинотеатра:\n"
+            "👉 **`{phone}`**\n\n"
+            "*(Позвоните по номеру выше, назовите фильм и забронируйте нужное количество мест!)*"
+        )
     },
     "uz": {
-        "welcome": "👋 **«Festival» kinoteatriga xush kelibsiz!**\n\nIltimos, xizmat ko'rsatish tilini tanlang:",
+        "welcome": "👋 **«Festival» kinoteatriga xush kelibsiz!**\n\nIltimos, tilni tanlang:",
         "main_menu": "🎬 **Asosiy menyu**\nKerakli bo'limni tanlang:",
-        "btn_catalog": "🍿 Filmlar afishasi",
-        "btn_contact": "📞 Kontaktlar va manzil",
+        "btn_catalog": "🍿 Afisha va seanslar",
+        "btn_contact": "📍 Kontaktlar va manzil",
         "btn_lang": "🌐 Tilni o'zgartirish",
-        "contacts": f"📍 **«Festival» kinoteatri**\n📞 Bron qilish va ma'lumot: {ADMIN_PHONE}\n🏢 Manzil: «Festival» KSM\n💵 To'lov **faqat naqd pulda** kassa orqali amalga oshiriladi.",
+        "contacts": (
+            f"📍 **«Festival» kinoteatri**\n"
+            f"🏢 **Manzil:** Farg'ona sh., Markaz, «Festival» KSM\n\n"
+            f"📞 **Chipta bron qilish:** `{PHONE_BOOKING}`\n"
+            f"🛠 **Texnik qo'llab-quvvatlash:** `{PHONE_SUPPORT}`\n\n"
+            f"💵 *To'lov kassada naqd pulda amalga oshiriladi.*"
+        ),
         "select_movie": "🎟 **Afishadan filmni tanlang:**",
-        "movie_info": "🎬 **{title}**\n\n⏰ Seanslar: {time}\n💰 Chipta narxi: {price} so'm\n💵 To'lov: Kassada naqd pulda",
+        "movie_info": (
+            "🎬 **Film:** {title}\n\n"
+            "⏰ **Mavjud seanslar:** {time}\n"
+            "💰 **Chipta narxi:** {price:,} so'm\n"
+            "💵 **To'lov:** Kassada naqd pulda"
+        ),
         "btn_reserve": "📞 Joyni bron qilish",
         "btn_back": "⬅️ Afishaga orqaga",
-        "reserve_info": f"📞 **Chiptalarni bron qilish**\n\n**«{{title}}»** filmiga joylarni bron qilish uchun ushbu raqamga qo'ng'iroq qiling:\n👉 `{ADMIN_PHONE}`\n\n*(Kassirga film nomi, seans va joylar sonini ayting)*"
+        "reserve_info": (
+            "📞 **JOYLARNI BRON QILISH**\n\n"
+            "🎬 **Tanlangan film:** {title}\n"
+            "💰 **Chipta narxi:** {price:,} so'm\n\n"
+            "Joyni bron qilish uchun kinoteatr bosh menejeriga qo'ng'iroq qiling:\n"
+            "👉 **`{phone}`**\n\n"
+            "*(Yuqoridagi raqamga qo'ng'iroq qiling, film nomini ayting va joylarni bron qiling!)*"
+        )
     }
 }
 
 
 # ==========================================
-# 3. ВСПОМОГАТЕЛЬНЫЕ КЛАВИАТУРЫ
+# 4. КЛАВИАТУРЫ
 # ==========================================
 def get_lang_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -187,7 +221,8 @@ def get_catalog_keyboard(lang):
     buttons = []
     for m in MOVIES:
         title = m["title_ru"] if lang == "ru" else m["title_uz"]
-        buttons.append([InlineKeyboardButton(text=title, callback_data=f"movie_{m['id']}")])
+        buttons.append(
+            [InlineKeyboardButton(text=f"{title} ({m['price']:,} сум/so'm)", callback_data=f"movie_{m['id']}")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
@@ -200,7 +235,7 @@ def get_movie_detail_keyboard(lang, movie_id):
 
 
 # ==========================================
-# 4. ОБРАБОТЧИКИ КОМАНД И НАЖАТИЙ
+# 5. ОБРАБОТЧИКИ СОБЫТИЙ
 # ==========================================
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
@@ -254,7 +289,11 @@ async def show_movie_details(call: types.CallbackQuery):
 
     if movie:
         title = movie["title_ru"] if lang == "ru" else movie["title_uz"]
-        caption = TEXTS[lang]["movie_info"].format(title=title, time=movie["time"], price=movie["price"])
+        caption = TEXTS[lang]["movie_info"].format(
+            title=title,
+            time=movie["time"],
+            price=movie["price"]
+        )
         try:
             await call.message.delete()
         except Exception:
@@ -276,7 +315,11 @@ async def reserve_ticket(call: types.CallbackQuery):
 
     if movie:
         title = movie["title_ru"] if lang == "ru" else movie["title_uz"]
-        msg_text = TEXTS[lang]["reserve_info"].format(title=title)
+        msg_text = TEXTS[lang]["reserve_info"].format(
+            title=title,
+            price=movie["price"],
+            phone=PHONE_BOOKING
+        )
 
         back_kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=TEXTS[lang]["btn_back"], callback_data="back_catalog")]
@@ -291,10 +334,10 @@ async def reserve_ticket(call: types.CallbackQuery):
 
 
 # ==========================================
-# 5. ОСНОВНОЙ ЗАПУСК
+# 6. ЗАПУСК
 # ==========================================
 async def main():
-    print(f"Бот ТЦ «Фестиваль» успешно запущен. Телефон бронирования: {ADMIN_PHONE}")
+    print("Бот ТЦ «Фестиваль» успешно запущен!")
     await dp.start_polling(bot)
 
 
